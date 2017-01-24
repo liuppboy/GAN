@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, absolute_import
 from six.moves import xrange
-
+import time
 import tensorflow as tf
 import numpy as np
+import os
 
 from residual_net import dense_layer, residual_net, residual_block, batch_norm, conv2d, conv2d_block, conv2d_transpose, conv2d_transpose_block, lrelu
 from dataset import FontDataManager
@@ -82,7 +83,7 @@ class GAN(object):
         
         self.image_loss = tf.reduce_mean(tf.square(self.G - self.target_images))
         self.feature_loss = tf.reduce_mean(tf.square(feature_real - feature_fake))
-        self.g_loss = self.g_gan_loss + 1e-3 * self.feature_loss + 1e-5 * self.image_loss
+        self.g_loss = self.g_gan_loss + self.feature_loss + self.image_loss
         
         self.image_loss_sum = tf.summary.scalar("image_loss_sum", self.image_loss)
         self.feature_loss_sum = tf.summary.scalar("feature_loss", self.feature_loss)
@@ -100,10 +101,12 @@ class GAN(object):
         self.saver = tf.train.Saver()
         
     def train(self, config):
-        self.bulid_model()
+        #get data
         dataset = FontDataManager(config.source_font, config.target_font, 
                                   config.train_size, config.validation_size, unit_scale=True, shuffle=True)
-
+        sample_soruce_image, sample_target_image= dataset.get_validation()
+        
+        self.bulid_model()
         d_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
                           .minimize(self.d_loss, var_list=self.d_vars)
         g_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
@@ -121,12 +124,11 @@ class GAN(object):
         batch_idxs = config.train_size // self.batch_size
         start_time = time.time()
         
-        if self.load(self.checkpoint_dir):
+        if self.load(config.checkpoint_dir):
             print(" [*] Load SUCCESS")
         else:
             print(" [!] Load failed...")
         
-        sample_soruce_image, sample_target_image= dataset.get_validation()
         for epoch in xrange(config.epoch):
             for idx in xrange(0, batch_idxs):
                 source_batch, target_batch = dataset.next_train_batch(self.batch_size)
@@ -146,18 +148,20 @@ class GAN(object):
                 
                 
                 counter += 1
-                print('Epoch: [%2d] [%4d/%4d] time: %4.4f') % (epoch, idx, batch_idxs, time.time() - start_time)
-                print('    d_loss： %.6f, d_gan_loss_real: %.6f, d_gan_loss_fake: %.6f') % (d_loss, d_gan_loss_real, d_gan_loss_fake)
-                print('    g_loss: %.6f, g_gan_loss: %.6f, image_loss: %.6f, feature_loss: %.6f') % (g_loss, g_gan_loss, image_loss, feature_loss)
+                print('Epoch: %2d [%4d/%4d] time: %4.4f' % (epoch, idx, batch_idxs, time.time() - start_time))
+                print('    d_loss： %.6f, d_gan_loss_real: %.6f, d_gan_loss_fake: %.6f' % (d_loss, d_gan_loss_real, d_gan_loss_fake))
+                print('    g_loss: %.6f, g_gan_loss: %.6f, image_loss: %.6f, feature_loss: %.6f' % (g_loss, g_gan_loss, image_loss, feature_loss))
 
-                if np.mod(counter, 20) == 1:
+                if np.mod(counter, 10) == 1:
                         samples = self.sess.run([self.sampler],feed_dict={self.sample_images: sample_soruce_image})
                         #inverse
-                        samples = (samples * 128) + 128
-                        
+                        samples = np.squeeze(samples, axis==3)
+                        samples = (samples * 128.) + 128
+                        samples.dtype = 'uint8'
                         render_frame(samples, config.frame_dir, counter)
                         
-                        summary_str = self.sess.run([self.summary_all], feed_dict={ self.source_images:source_batch, self.target_images:target_batch })
+                if np.mod(counter, 20) == 1:        
+                        summary_str = self.sess.run(self.summary_all, feed_dict={ self.source_images:source_batch, self.target_images:target_batch })
                         self.summary_writer.add_summary(summary_str, counter)                           
 
                 if np.mod(counter, 500) == 2:

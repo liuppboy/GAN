@@ -27,10 +27,10 @@ def main(_):
     if not os.path.exists(config.frame_dir):
         os.makedirs(config.frame_dir)
 
-    with tf.Session() as sess:
-        
-        gan = GAN(sess)
-        gan.train(config)
+    with tf.Session(graph=tf.get_default_graph()) as sess:
+        with tf.device('/cpu:0'):
+            gan = GAN(sess)
+            gan.train(config)
 
 
 if __name__ == '__main__':

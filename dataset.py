@@ -5,7 +5,7 @@ import numpy as np
 def read_font_data(font, unit_scale):
     F = np.load(font)
     if unit_scale:
-        return (F - 128.) / 255.
+        return (F - 128.) / 128.
     return F
 
 
@@ -32,7 +32,9 @@ class FontDataProvider(object):
 class FontDataManager(object):
     def __init__(self, src, target, train_size, validation_size, unit_scale=True, shuffle=False):
         src_data = read_font_data(src, unit_scale)
+        src_data = np.expand_dims(src_data, 3)
         target_data = read_font_data(target, unit_scale)
+        target_data = np.expand_dims(target_data, 3)
         if shuffle:
             perm = np.arange(src_data.shape[0])
             np.random.shuffle(perm)

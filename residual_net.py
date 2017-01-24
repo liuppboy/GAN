@@ -66,7 +66,7 @@ def conv2d_block(x, is_train, filter_shape, strides=[1, 1, 1, 1], stddev=0.01,
     return acti
         
 
-def conv2d_transpose(x, filter_shape, strides=[1, 1, 1, 1], stddev = 0.01, 
+def conv2d_transpose(x, filter_shape, strides=[1, 2, 2, 1], stddev = 0.01, 
                      padding='SAME', name='conv2d_transpose'):
     with tf.variable_scope(name):        
         # filter : [height, width, output_channels, in_channels]
@@ -79,7 +79,7 @@ def conv2d_transpose(x, filter_shape, strides=[1, 1, 1, 1], stddev = 0.01,
         deconv = tf.nn.bias_add(deconv, b)
     return deconv
 
-def conv2d_transpose_block(x, is_train, filter_shape, strides=[1, 1, 1, 1], stddev=0.01, 
+def conv2d_transpose_block(x, is_train, filter_shape, strides=[1, 2, 2, 1], stddev=0.01, 
                            activation=tf.nn.relu, padding='SAME', name='conv2d_transpose_block'):
     with tf.variable_scope(name):
         conv = conv2d_transpose(x, filter_shape, strides, stddev, padding)
