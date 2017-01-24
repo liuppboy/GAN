@@ -14,13 +14,12 @@ from PIL import ImageFont
 
 import scipy.misc as misc
 
+def render_frame(x, frame_dir, step, img_per_row=10):
+    frame_path = os.path.join(frame_dir, "step_%04d.png" % step)
+    return render_fonts_image(x, frame_path, img_per_row)
 
-def render_fonts_image(x, path, img_per_row, unit_scale=True):
-    if unit_scale:
-        # scale 0-1 matrix back to gray scale bitmaps
-        bitmaps = (x * 255.).astype(dtype=np.int16) % 256
-    else:
-        bitmaps = x
+def render_fonts_image(x, path, img_per_row):
+    bitmaps = x
     num_imgs, w, h = x.shape
     assert w == h
     side = int(w)
@@ -77,13 +76,13 @@ def get_chars_set(path):
     Expect a text file that each line is a char
     """
     chars = list()
-    try:
-        with open(path, encoding="utf8") as f:
+    try: #python 3
+        with open(path, encoding="utf8") as f:  
             for line in f:
                 line = u"%s" % line
                 char = line.split()[0]
                 chars.append(char)            
-    except:
+    except: #python 2
         reload(sys)
         sys.setdefaultencoding("utf-8")    
         with open(path) as f:  
